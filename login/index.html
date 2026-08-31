@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>系统登录</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  }
+  .login-card {
+    width: 380px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 40px 36px 32px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.3);
+  }
+  .login-card h1 {
+    font-size: 22px;
+    color: #1f2d3d;
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .form-item { margin-bottom: 18px; }
+  .form-item label {
+    display: block;
+    font-size: 13px;
+    color: #606266;
+    margin-bottom: 6px;
+  }
+  .form-item input {
+    width: 100%;
+    height: 42px;
+    padding: 0 12px;
+    border: 1px solid #dcdfe6;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .form-item input:focus { border-color: #2a5298; }
+  .captcha-row { display: flex; gap: 10px; }
+  .captcha-row input { flex: 1; }
+  #captchaCanvas {
+    width: 120px;
+    height: 42px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid #dcdfe6;
+  }
+  .btn-login {
+    width: 100%;
+    height: 44px;
+    margin-top: 6px;
+    background: #2a5298;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: opacity .2s;
+  }
+  .btn-login:hover { opacity: .9; }
+  .msg {
+    min-height: 20px;
+    font-size: 13px;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .msg.error { color: #f56c6c; }
+  .msg.success { color: #67c23a; }
+</style>
+</head>
+<body>
+  <div class="login-card">
+    <h1>系统登录</h1>
+    <form id="loginForm" novalidate>
+      <div class="msg" id="msg"></div>
+      <div class="form-item">
+        <label for="username">用户名</label>
+        <input id="username" name="username" type="text" autocomplete="username" placeholder="请输入用户名" required />
+      </div>
+      <div class="form-item">
+        <label for="password">密码</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="请输入密码" required />
+      </div>
+      <div class="form-item">
+        <label for="captcha">验证码</label>
+        <div class="captcha-row">
+          <input id="captcha" name="captcha" type="text" maxlength="4" placeholder="请输入验证码" required />
+          <canvas id="captchaCanvas" width="120" height="42" title="点击刷新验证码"></canvas>
+        </div>
+      </div>
+      <button class="btn-login" type="submit">登 录</button>
+    </form>
+  </div>
+
+<script>
+(function () {
+  var canvas = document.getElementById('captchaCanvas');
+  var ctx = canvas.getContext('2d');
+  var msgEl = document.getElementById('msg');
+  var code = '';
+
+  var CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+  function randomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function refreshCaptcha() {
+    code = '';
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#f0f2f5';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for (var i = 0; i < 4; i++) {
+      var ch = CHARS[randomInt(0, CHARS.length - 1)];
+      code += ch;
+      ctx.save();
+      ctx.font = randomInt(22, 26) + 'px bold Arial';
+      ctx.fillStyle = 'hsl(' + randomInt(0, 360) + ',60%,40%)';
+      ctx.translate(18 + i * 26, randomInt(26, 34));
+      ctx.rotate((Math.random() - 0.5) * 0.5);
+      ctx.fillText(ch, 0, 0);
+      ctx.restore();
+    }
+    for (var j = 0; j < 5; j++) {
+      ctx.strokeStyle = 'rgba(100,100,100,.35)';
+      ctx.beginPath();
+      ctx.moveTo(randomInt(0, canvas.width), randomInt(0, canvas.height));
+      ctx.lineTo(randomInt(0, canvas.width), randomInt(0, canvas.height));
+      ctx.stroke();
+    }
+    for (var k = 0; k < 30; k++) {
+      ctx.fillStyle = 'rgba(100,100,100,.4)';
+      ctx.fillRect(randomInt(0, canvas.width), randomInt(0, canvas.height), 1, 1);
+    }
+  }
+
+  canvas.addEventListener('click', refreshCaptcha);
+
+  function showMsg(text, ok) {
+    msgEl.textContent = text;
+    msgEl.className = 'msg ' + (ok ? 'success' : 'error');
+  }
+
+  document.getElementById('loginForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var username = document.getElementById('username').value.trim();
+    var password = document.getElementById('password').value;
+    var captcha = document.getElementById('captcha').value.trim();
+
+    if (!username) { showMsg('请输入用户名', false); return; }
+    if (!password) { showMsg('请输入密码', false); return; }
+    if (!captcha) { showMsg('请输入验证码', false); return; }
+    if (captcha.toUpperCase() !== code) {
+      showMsg('验证码错误，请重试', false);
+      refreshCaptcha();
+      return;
+    }
+    // 演示环境：本地校验通过即视为登录成功，实际项目应提交后端接口
+    showMsg('登录成功（演示）', true);
+    refreshCaptcha();
+  });
+
+  refreshCaptcha();
+})();
+</script>
+</body>
+</html>
